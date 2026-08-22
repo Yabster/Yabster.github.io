@@ -5,16 +5,15 @@
 #
 # On this fleet every Tenable REXML finding (plugins 242630 / 210049) lives in
 #   {/opt/homebrew,/usr/local}/Library/Homebrew/vendor/portable-ruby/<ver>/...
-# i.e. Homebrew's PRIVATE Ruby, not system Ruby, not rbenv, not a repo. So the
-# fix is Homebrew maintenance, never `gem install rexml`:
+# i.e. Homebrew's PRIVATE Ruby - not system Ruby, rbenv, or a repo. Nothing pins
+# to it, so patch mode fully cleans up with no opt-in flag:
 #   brew update    -> current portable-ruby ships rexml >= 3.3.9
-#   brew cleanup   -> removes the stale old portable-ruby copies being flagged
+#   brew cleanup   -> removes stale old portable-ruby copies being flagged
+#   then           -> delete any stale portable-ruby dir cleanup left behind
+#                     (guarded: never the 'current' symlink target)
 #
-# Jamf parameters (also $1-$2 by hand):
-#   $4  MODE       report | patch            default: report
-#   $5  ENFORCE    off | prune               default: off
-#        prune = if brew cleanup leaves a stale portable-ruby dir behind, remove
-#                that non-current version dir directly (guarded). Off by default.
+# Jamf parameter (also $1 by hand):
+#   $4  MODE   report | patch    default: report
 #
 # Exit: 0 = no vulnerable REXML remains   1 = still present   2 = error
 # Log: /var/log/rexmlfix.log   EA state: /Library/Application Support/NodePatch/rexml_last_run.txt
@@ -22,10 +21,8 @@
 PATH=/usr/bin:/bin:/usr/sbin:/sbin; export PATH
 umask 022
 
-if [ -n "$4" ] || [ "$1" = "/" ]; then MODE="${4:-report}"; ENFORCE="${5:-off}"
-else MODE="${1:-report}"; ENFORCE="${2:-off}"; fi
-case "$MODE" in report|patch) ;; *) echo "bad MODE '$MODE'"; exit 2;; esac
-case "$ENFORCE" in off|prune) ;; *) echo "bad ENFORCE '$ENFORCE'"; exit 2;; esac
+if [ -n "$4" ] || [ "$1" = "/" ]; then MODE="${4:-report}"; else MODE="${1:-report}"; fi
+case "$MODE" in report|patch) ;; *) echo "bad MODE '$MODE' (report|patch)"; exit 2;; esac
 
 FLOOR="3.3.9"
 LOG=/var/log/rexmlfix.log
@@ -52,7 +49,7 @@ scan_vuln(){ local VDIR=$1 spec v
 }
 
 REMAIN=0 PATCHED=0 FOUND=0
-log "=== rexml-fix.sh start (MODE=$MODE ENFORCE=$ENFORCE) ==="
+log "=== rexml-fix.sh start (MODE=$MODE) ==="
 
 for PREFIX in /opt/homebrew /usr/local; do
   BREW="$PREFIX/bin/brew"; [ -x "$BREW" ] || continue
@@ -74,17 +71,13 @@ for PREFIX in /opt/homebrew /usr/local; do
   log "  -> brew update (as $OWNER)"; asuser "$OWNER" "$BREW" update    >>"$LOG" 2>&1
   log "  -> brew cleanup --prune=all"; asuser "$OWNER" "$BREW" cleanup --prune=all >>"$LOG" 2>&1
 
+  # Always remove any stale portable-ruby version dir cleanup left behind that
+  # still carries a vulnerable rexml. Guarded: only inside .../portable-ruby/,
+  # never the 'current' symlink target. Nothing pins to portable-ruby, so safe.
   after=$(scan_vuln "$VDIR")
-  if [ -z "$after" ]; then
-    PATCHED=1; log "  -> clear: no vulnerable REXML remains under $PREFIX"; continue
-  fi
-
-  if [ "$ENFORCE" = prune ]; then
-    # brew cleanup left stale copies. Remove non-current portable-ruby version dirs
-    # that still carry a vulnerable rexml. Guarded: only inside .../portable-ruby/,
-    # never the 'current' symlink target.
+  if [ -n "$after" ]; then
     cur=""; [ -L "$VDIR/current" ] && cur=$(basename "$(readlink "$VDIR/current")")
-    printf '%s\n' "$after" | awk -F'\t' '{print $1}' | while IFS= read -r s; do
+    printf '%s\n' "$after" | awk -F'\t' '{print $1}' | sort -u | while IFS= read -r s; do
       pr=${s#*/portable-ruby/}; pr=${pr%%/*}
       case "$pr" in ""|current) continue;; esac
       [ "$pr" = "$cur" ] && { log "    keeping current portable-ruby/$pr"; continue; }
@@ -95,20 +88,20 @@ for PREFIX in /opt/homebrew /usr/local; do
     after=$(scan_vuln "$VDIR")
   fi
 
-  if [ -z "$after" ]; then PATCHED=1; log "  -> clear after enforce under $PREFIX"
+  if [ -z "$after" ]; then
+    PATCHED=1; log "  -> clear: no vulnerable REXML remains under $PREFIX"
   else
     REMAIN=1
-    log "  -> STILL vulnerable under $PREFIX:"
+    log "  -> STILL vulnerable under $PREFIX (current portable-ruby itself ships old rexml - run brew update again / upgrade Homebrew):"
     printf '%s\n' "$after" | while IFS=$'\t' read -r s v; do
       pr=${s#*/portable-ruby/}; pr=${pr%%/*}; log "       portable-ruby/$pr = rexml $v"
     done
-    [ "$ENFORCE" = off ] && log "     (re-run with ENFORCE=prune to remove leftover stale copies)"
   fi
 done
 
 mkdir -p "$STATE_DIR"
-printf '%s  MODE=%s ENFORCE=%s found=%s patched=%s remain=%s\n' \
-  "$(date '+%Y-%m-%d %H:%M:%S')" "$MODE" "$ENFORCE" "$FOUND" "$PATCHED" "$REMAIN" \
+printf '%s  MODE=%s found=%s patched=%s remain=%s\n' \
+  "$(date '+%Y-%m-%d %H:%M:%S')" "$MODE" "$FOUND" "$PATCHED" "$REMAIN" \
   > "$STATE_DIR/rexml_last_run.txt"; chmod 644 "$STATE_DIR/rexml_last_run.txt"
 
 if [ "$FOUND" -eq 0 ]; then log "No Homebrew portable-ruby REXML found."; log "=== end (clean) ==="; exit 0; fi
