@@ -35,10 +35,20 @@
 			<true/>
 
 			<!-- ============================================================
-			     Update target: pin the update to macOS 26.6.2 exactly.
-			     super will not install anything newer than this version.
+			     Update target: pin to macOS 26.6.2 exactly, for BOTH tracks:
+			       - Macs already on 26.x  -> minor update up to 26.6.2 (no newer).
+			       - Macs on 14 or 15      -> MAJOR upgrade, capped at 26.6.2.
+			     super will not install anything newer than 26.6.2.
 			     ============================================================ -->
 			<key>InstallMacOSMinorVersionTarget</key>
+			<string>26.6.2</string>
+
+			<!-- Allow super to perform macOS MAJOR upgrades (14/15 -> 26). -->
+			<key>InstallMacOSMajorUpgrades</key>
+			<true/>
+
+			<!-- Cap the major upgrade at 26.6.2 so nobody jumps to 27. -->
+			<key>InstallMacOSMajorVersionTarget</key>
 			<string>26.6.2</string>
 
 			<!-- ============================================================
@@ -47,13 +57,16 @@
 			       focus: after this, restart dialogs appear even in Do Not Disturb.
 			       soft:  after this, an interactive "no more deferrals" dialog shows.
 			       hard:  after this, the Mac restarts to install WITHOUT asking.
+			     NOTE: the 14/15 -> 26 MAJOR upgrade downloads a ~14 GB full installer
+			     and takes far longer than a minor update, so give a more generous
+			     runway here than you would for minor-only enforcement.
 			     ============================================================ -->
 			<key>DeadlineDateFocus</key>
-			<string>2026-09-08:09:00</string>
+			<string>2026-09-12:09:00</string>
 			<key>DeadlineDateSoft</key>
-			<string>2026-09-10:09:00</string>
+			<string>2026-09-16:09:00</string>
 			<key>DeadlineDateHard</key>
-			<string>2026-09-12:17:00</string>
+			<string>2026-09-19:17:00</string>
 
 			<!-- ============================================================
 			     Apple silicon MDM enforcement. These two identifiers let super
