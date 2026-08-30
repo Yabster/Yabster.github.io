@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  S.U.P.E.R.M.A.N. (super) configuration profile
+  Purpose: Enforce macOS minor update to 26.6.2 on Macs that DDM did not update.
+  Preference domain: com.macjutsu.super
+
+  BEFORE DEPLOYING:
+    1. Replace every REPLACE_ME / example value below with values for your environment.
+    2. Adjust the three DeadlineDate* values (see jamf/superman/README.md for guidance).
+    3. Do NOT put the Jamf API client id/secret here — those go in the Jamf policy
+       Script Parameters (they would otherwise be visible to local users).
+    4. $JSSID and $MANAGEMENTID are Jamf Pro configuration-profile variables that Jamf
+       substitutes per-computer at deployment time. Leave them exactly as written.
+
+  This can be deployed as-is (it is a complete .mobileconfig) or the inner <dict> can be
+  pasted into a new "Application & Custom Settings" payload with domain com.macjutsu.super.
+-->
+<plist version="1.0">
+<dict>
+	<key>PayloadContent</key>
+	<array>
+		<dict>
+			<key>PayloadType</key>
+			<string>com.macjutsu.super</string>
+			<key>PayloadVersion</key>
+			<integer>1</integer>
+			<key>PayloadIdentifier</key>
+			<string>com.macjutsu.super.D4A6E2CF-F389-4207-A459-CDE9EA219E9E</string>
+			<key>PayloadUUID</key>
+			<string>D4A6E2CF-F389-4207-A459-CDE9EA219E9E</string>
+			<key>PayloadDisplayName</key>
+			<string>super settings</string>
+			<key>PayloadEnabled</key>
+			<true/>
+
+			<!-- ============================================================
+			     Update target: pin the update to macOS 26.6.2 exactly.
+			     super will not install anything newer than this version.
+			     ============================================================ -->
+			<key>InstallMacOSMinorVersionTarget</key>
+			<string>26.6.2</string>
+
+			<!-- ============================================================
+			     Deadlines. Format: YYYY-MM-DD:HH:MM  (24-hour clock).
+			     ADJUST THESE before deploying. Order must be focus < soft < hard.
+			       focus: after this, restart dialogs appear even in Do Not Disturb.
+			       soft:  after this, an interactive "no more deferrals" dialog shows.
+			       hard:  after this, the Mac restarts to install WITHOUT asking.
+			     ============================================================ -->
+			<key>DeadlineDateFocus</key>
+			<string>2026-09-08:09:00</string>
+			<key>DeadlineDateSoft</key>
+			<string>2026-09-10:09:00</string>
+			<key>DeadlineDateHard</key>
+			<string>2026-09-12:17:00</string>
+
+			<!-- ============================================================
+			     Apple silicon MDM enforcement. These two identifiers let super
+			     send the managed-update MDM command via the Jamf Pro API.
+			     Jamf substitutes the values per-computer; leave the $variables as-is.
+			     ============================================================ -->
+			<key>AuthJamfComputerID</key>
+			<string>$JSSID</string>
+			<key>AuthJamfManagementID</key>
+			<string>$MANAGEMENTID</string>
+
+			<!-- ============================================================
+			     If the MDM push workflow fails, let the logged-in user authenticate
+			     locally so the enforced install can still proceed at the deadline.
+			     Remove this key if you do NOT want to fall back to user auth.
+			     ============================================================ -->
+			<key>AuthMDMFailoverToUser</key>
+			<string>ALWAYS</string>
+
+			<!-- ============================================================
+			     Optional: branding shown in the update dialogs.
+			     ============================================================ -->
+			<key>DisplayIconFile</key>
+			<string>/Applications/Self Service.app/Contents/Resources/AppIcon.icns</string>
+		</dict>
+	</array>
+	<key>PayloadDisplayName</key>
+	<string>super — Enforce macOS 26.6.2</string>
+	<key>PayloadIdentifier</key>
+	<string>com.macjutsu.super.enforce-26-6-2.2560FAAB-5EC2-4415-82CA-45E8959EC937</string>
+	<key>PayloadOrganization</key>
+	<string>REPLACE_ME Organization</string>
+	<key>PayloadScope</key>
+	<string>System</string>
+	<key>PayloadType</key>
+	<string>Configuration</string>
+	<key>PayloadUUID</key>
+	<string>2560FAAB-5EC2-4415-82CA-45E8959EC937</string>
+	<key>PayloadVersion</key>
+	<integer>1</integer>
+</dict>
+</plist>
