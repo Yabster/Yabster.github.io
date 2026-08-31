@@ -52,21 +52,17 @@
 			<string>26.6.2</string>
 
 			<!-- ============================================================
-			     Deadlines. Format: YYYY-MM-DD:HH:MM  (24-hour clock).
-			     ADJUST THESE before deploying. Order must be focus < soft < hard.
-			       focus: after this, restart dialogs appear even in Do Not Disturb.
-			       soft:  after this, an interactive "no more deferrals" dialog shows.
-			       hard:  after this, the Mac restarts to install WITHOUT asking.
-			     NOTE: the 14/15 -> 26 MAJOR upgrade downloads a ~14 GB full installer
-			     and takes far longer than a minor update, so give a more generous
-			     runway here than you would for minor-only enforcement.
+			     Deferrals: allow 8 deferrals, 1 hour apart = an 8-hour window.
+			       DeferralTimerDefault = 60  -> each "Later" waits 60 minutes.
+			       DeadlineCountHard    = 8   -> after the 8th deferral, the Mac
+			                                     installs and restarts WITHOUT asking
+			                                     (the user gets a restart notice).
+			     Simple by design: no focus/soft counts, no calendar dates.
 			     ============================================================ -->
-			<key>DeadlineDateFocus</key>
-			<string>2026-09-12:09:00</string>
-			<key>DeadlineDateSoft</key>
-			<string>2026-09-16:09:00</string>
-			<key>DeadlineDateHard</key>
-			<string>2026-09-19:17:00</string>
+			<key>DeferralTimerDefault</key>
+			<integer>60</integer>
+			<key>DeadlineCountHard</key>
+			<integer>8</integer>
 
 			<!-- ============================================================
 			     Apple silicon MDM enforcement. These two identifiers let super

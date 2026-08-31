@@ -52,7 +52,8 @@ policy Script Parameters**, never in the repo or the profile.
 4. For the **14/15 → 26 major-upgrade** track, read
    **[Major-upgrade requirements](#major-upgrade-requirements)** below — free space,
    `mist-cli` for Intel, and longer install time all apply.
-5. Decide your **deadline dates** (see below).
+5. Enforcement is **8 deferrals, 1 hour apart** (`DeadlineCountHard=8`,
+   `DeferralTimerDefault=60`) — already set in the profile; no dates to manage.
 
 ---
 
@@ -79,9 +80,10 @@ doesn't need any of it). These are already reflected in the config profile
   fails (more common on the heavier upgrade workflow). If you'd rather use the more
   reliable **local** auth path instead of MDM, see the super wiki *Apple Silicon
   Local Credentials* — but MDM is fine to start.
-- **Time + longer runway** — the upgrade download + install can take well over an
-  hour. The deadline dates in the profile are set further out than a minor-only
-  push for this reason; keep them generous.
+- **Time** — the upgrade download + install can take well over an hour. The 8×1h
+  deferral window governs when the user can no longer postpone; the actual
+  download/install then runs on top of that, so expect a major-upgrade Mac to be
+  busy for a while after the deadline is hit.
 
 ---
 
@@ -143,9 +145,9 @@ Deploy `com.macjutsu.super.mobileconfig` **before** the policy runs.
    - `InstallMacOSMinorVersionTarget` → already `26.6.2` (pins the 26.x track).
    - `InstallMacOSMajorUpgrades` = `true` and `InstallMacOSMajorVersionTarget` =
      `26.6.2` → already set; these enable and cap the 14/15 → 26 upgrade.
-   - `DeadlineDateFocus` / `DeadlineDateSoft` / `DeadlineDateHard` → your dates
-     (format `YYYY-MM-DD:HH:MM`, order must be focus < soft < hard). Keep them
-     generous — the major upgrade is heavy.
+   - `DeferralTimerDefault=60` and `DeadlineCountHard=8` → already set. This gives
+     users 8 deferrals, 1 hour apart (an 8-hour window), then a forced install +
+     restart. Nothing to change unless you want a different count/interval.
    - `AuthJamfComputerID` = `$JSSID` and `AuthJamfManagementID` = `$MANAGEMENTID`
      — leave the `$` variables exactly as written; Jamf fills them per-computer.
    - `PayloadOrganization` → your org name.
@@ -192,9 +194,10 @@ sets your deferral policy. See the super wiki, *Apple Software Update Settings*.
    `mist-cli` is present on the Intel upgrade test Mac.
 2. On a test Mac, watch it work:
    ```bash
+   # Simulate reaching the hard deadline (count 0) to see the forced-restart path:
    sudo /usr/local/bin/super --test-mode --install-macos-minor-version-target=26.6.2 \
-     --deadline-date-soft=2020-01-03 --deadline-date-hard=2020-01-07
-   tail -f /var/log/super/super.log      # or /Library/Management/super/super.log on newer builds
+     --deadline-count-hard=0
+   tail -f /Library/Management/super/super.log   # older builds: /var/log/super/super.log
    ```
    The past dates simulate an expired deadline so you can see the soft/hard dialogs
    without waiting.
