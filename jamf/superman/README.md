@@ -28,7 +28,7 @@ retire (or narrow the scope of) the policy and profile described here.
 | File | What it is |
 |------|------------|
 | `com.macjutsu.super.mobileconfig` | Configuration profile (`com.macjutsu.super`) with the 26.6.2 target (minor + major upgrade), deadlines, and Apple-silicon MDM identifiers. |
-| `extension-attribute-super-status.sh` | Optional Jamf Extension Attribute to report each Mac's `super` status for a Smart Group / dashboard. |
+| `extension-attribute-super-status.sh` | Jamf Extension Attribute (String / Script) that reads `super`'s local plist and reports full status: version, last status line, update target, deferrals used (of your 8), installer-cached state, last check, next launch — plus a full key dump with credentials redacted. |
 | `README.md` | This runbook. |
 
 Nothing here contains secrets. The Jamf API **client id/secret go in the Jamf
