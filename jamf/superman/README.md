@@ -238,6 +238,28 @@ These are the usual reasons a Mac ignored DDM, and how super gets past each:
   MDM push failure *after* creds validate; (3) clear the bad state and re-run:
   `sudo /usr/local/bin/super --reset-super --verbose-mode` and watch the log for
   the exact HTTP result (401 = bad client/secret, 403 = missing privilege).
+### Authentication: user-saved password (the default in this kit)
+
+`AuthAskUserToSavePassword=true` is set in the profile. The user is prompted
+**once**, at the moment an update is actually about to install, for their own
+password. super saves it to **that user's login keychain** and reuses it silently
+from then on. This is the method to use when you have no common local admin
+account, and super's docs call it "by far the safest approach" because the
+credential lives in the user's own keychain, not the System keychain.
+
+It works on **every** macOS version and needs **no** Jamf API, so it completely
+sidesteps the macOS 14 Management ID bug described below.
+
+> **You MUST remove `--auth-jamf-client` and `--auth-jamf-secret` from the policy
+> Script Parameters.** super allows only one Apple silicon auth method, and if a
+> Jamf API option is still passed it *deletes* the saved user password on every
+> run (`"Deleting saved credentials for the --auth-ask-user-to-save-password
+> option"`), so the user is prompted forever and it never sticks.
+
+Requirements: the logged-in user must be a **volume owner with a secure token**
+(true for a normal primary user). If their password later changes, super simply
+prompts again and saves the new one.
+
 ### macOS 14 (and older): "Unable to resolve a valid Jamf Pro Management ID"
 
 **This is a bug in super, not your config.** On Jamf Pro 11.28+, super must resolve
