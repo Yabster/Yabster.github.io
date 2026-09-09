@@ -238,6 +238,52 @@ These are the usual reasons a Mac ignored DDM, and how super gets past each:
   MDM push failure *after* creds validate; (3) clear the bad state and re-run:
   `sudo /usr/local/bin/super --reset-super --verbose-mode` and watch the log for
   the exact HTTP result (401 = bad client/secret, 403 = missing privilege).
+### macOS 14 (and older): "Unable to resolve a valid Jamf Pro Management ID"
+
+**This is a bug in super, not your config.** On Jamf Pro 11.28+, super must resolve
+the computer's Management ID before it can authenticate. In super 5.1.1,
+`get_jamf_api_management_id()` parses the Jamf API response two different ways:
+
+```bash
+if [[ $macos_version_major -ge 15 ]]; then
+    jamf_management_id=$(... | jq -r ".general.managementId")     # macOS 15+
+else
+    jamf_management_id=$(... | grep 'managementId' | awk -F '"' '{print $4}')
+fi
+[[ ! "${jamf_management_id}" =~ ${REGEX_VALID_UUID} ]] && auth_error_jamf="TRUE"
+```
+
+`jq` only ships in **macOS 15+**. On macOS 14 and older super uses the `awk`
+fallback, which mis-parses the API's minified single-line JSON, fails the UUID
+check, and aborts auth — surfacing as *"Apple silicon authentication options could
+not be validated."* Same profile, same credentials: a 26.x Mac succeeds and a 14.x
+Mac fails.
+
+**Two fixes, in order of preference:**
+
+1. **Make the profile deliver the Management ID** so super never runs the broken
+   parser (it reads the managed value first and skips API resolution entirely).
+   The EA's `Profile delivers:` line shows what's actually arriving — if
+   `AuthJamfManagementID` is `<empty>` or the literal `$MANAGEMENTID`, the Jamf
+   payload variable is not substituting. Confirm your Jamf Pro version supports
+   the `$MANAGEMENTID` payload variable and that the profile is scoped/installed.
+   Tell-tale: if super wrote `AuthJamfComputerID` into its *local* plist, the
+   `$JSSID` variable didn't substitute either — super resolved it itself.
+2. **Use local authentication for the old Macs** and bypass the Jamf API path
+   completely (super's docs call local auth "more reliable and performant" than
+   MDM). Add `AuthAskUserToSavePassword=true` in a **second profile scoped only to
+   a "macOS below 15" Smart Group**.
+
+> **Do NOT add `AuthAskUserToSavePassword` to the main profile.** super allows only
+> one Apple silicon auth method, with local end-user password taking priority
+> *over* the Jamf API credentials. Putting it in the shared profile would switch
+> your healthy 26.x Macs off the silent MDM push and start prompting every user
+> for their password. Scope it to the old Macs only.
+
+`AuthCredentialFailoverToUser=true` (in the profile) is the safety net either way:
+it is the first branch super checks on an auth-validation error, so instead of the
+dead-end exit it falls over to user authentication and the upgrade still proceeds.
+
 - **MDM push unreliable** → `AuthMDMFailoverToUser=ALWAYS` (set in the profile)
   lets the logged-in user authenticate locally so the install still completes.
 - **Not enough free space / on-demand download waiting** → super will defer while

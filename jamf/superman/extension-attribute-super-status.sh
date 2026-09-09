@@ -67,10 +67,25 @@ Scheduled install:${scheduledInstall:+ ${scheduledInstall}}
 Last good check:  ${lastCheck}
 Next auto-launch: ${nextLaunch}"
 
+# --- What the CONFIG PROFILE is actually delivering. -----------------------
+# Critical for diagnosing auth failures: if AuthJamfManagementID here is empty
+# or shows a literal "$MANAGEMENTID", the Jamf payload variable is NOT being
+# substituted, and super must fall back to resolving it via the Jamf API --
+# which is unreliable on macOS 14 and older (no jq, fragile text parsing).
+managedPlist="/Library/Managed Preferences/com.macjutsu.super.plist"
+managedDomain="/Library/Managed Preferences/com.macjutsu.super"
+if [[ -f "${managedPlist}" ]]; then
+	managedComputerID="$(/usr/bin/defaults read "${managedDomain}" AuthJamfComputerID 2>/dev/null)"
+	managedMgmtID="$(/usr/bin/defaults read "${managedDomain}" AuthJamfManagementID 2>/dev/null)"
+	managedDump="Profile delivers: AuthJamfComputerID=${managedComputerID:-<empty>} AuthJamfManagementID=${managedMgmtID:-<empty>}"
+else
+	managedDump="Profile delivers: NO managed profile installed (com.macjutsu.super)"
+fi
+
 # --- FULL DUMP of the plist, with credential-adjacent values redacted. -----
 # Redact the VALUE of any key whose name matches an account/client identifier.
 fullDump="$(/usr/bin/defaults read "${superDomain}" 2>/dev/null | /usr/bin/sed -E \
 	's/^([[:space:]]*(AuthJamfClient|AuthJamfAccount|AuthJamfManagementID|AuthJamfComputerID|AuthLocalAccount|AuthServiceAccount|JamfAccount|LocalAccount|SuperAccount)[[:space:]]*=).*/\1 "<redacted>";/')"
 
-printf '<result>%s\n\n--- full plist (credentials redacted) ---\n%s</result>\n' "${summary}" "${fullDump}"
+printf '<result>%s\n%s\n\n--- full plist (credentials redacted) ---\n%s</result>\n' "${summary}" "${managedDump}" "${fullDump}"
 exit 0
