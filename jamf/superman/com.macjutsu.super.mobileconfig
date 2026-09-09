@@ -2,16 +2,18 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <!--
   S.U.P.E.R.M.A.N. (super) configuration profile
-  Purpose: Enforce macOS minor update to 26.6.2 on Macs that DDM did not update.
+  Purpose: Enforce macOS 26.6.2 on out-of-date Macs — a minor update for Macs
+           already on 26.x, and a major upgrade for Macs on 14/15.
   Preference domain: com.macjutsu.super
 
   BEFORE DEPLOYING:
-    1. Replace every REPLACE_ME / example value below with values for your environment.
-    2. Adjust the three DeadlineDate* values (see jamf/superman/README.md for guidance).
-    3. Do NOT put the Jamf API client id/secret here — those go in the Jamf policy
+    1. Set PayloadOrganization to your org name (only REPLACE_ME left in the file).
+    2. Do NOT put the Jamf API client id/secret here — those go in the Jamf policy
        Script Parameters (they would otherwise be visible to local users).
-    4. $JSSID and $MANAGEMENTID are Jamf Pro configuration-profile variables that Jamf
+    3. $JSSID and $MANAGEMENTID are Jamf Pro configuration-profile variables that Jamf
        substitutes per-computer at deployment time. Leave them exactly as written.
+    4. Enforcement is 8 deferrals 1 hour apart (DeadlineCountHard + DeferralTimerDefault);
+       adjust those two integers if you want a different count/interval.
 
   This can be deployed as-is (it is a complete .mobileconfig) or the inner <dict> can be
   pasted into a new "Application & Custom Settings" payload with domain com.macjutsu.super.
