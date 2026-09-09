@@ -238,27 +238,43 @@ These are the usual reasons a Mac ignored DDM, and how super gets past each:
   MDM push failure *after* creds validate; (3) clear the bad state and re-run:
   `sudo /usr/local/bin/super --reset-super --verbose-mode` and watch the log for
   the exact HTTP result (401 = bad client/secret, 403 = missing privilege).
-### Authentication: user-saved password (the default in this kit)
+### Authentication: saved local account (the method in use)
 
-`AuthAskUserToSavePassword=true` is set in the profile. The user is prompted
-**once**, at the moment an update is actually about to install, for their own
-password. super saves it to **that user's login keychain** and reuses it silently
-from then on. This is the method to use when you have no common local admin
-account, and super's docs call it "by far the safest approach" because the
-credential lives in the user's own keychain, not the System keychain.
+Passed via the Jamf policy Script Parameters:
 
-It works on **every** macOS version and needs **no** Jamf API, so it completely
-sidesteps the macOS 14 Management ID bug described below.
+```
+--auth-local-account=YOUR_ADMIN_ACCOUNT
+--auth-local-password=THE_PASSWORD
+```
 
-> **You MUST remove `--auth-jamf-client` and `--auth-jamf-secret` from the policy
-> Script Parameters.** super allows only one Apple silicon auth method, and if a
-> Jamf API option is still passed it *deletes* the saved user password on every
-> run (`"Deleting saved credentials for the --auth-ask-user-to-save-password
-> option"`), so the user is prompted forever and it never sticks.
+super validates them once and stores them in the System keychain, then
+authenticates every later update/upgrade silently. Confirmed working on macOS
+14.8.5 Apple silicon:
 
-Requirements: the logged-in user must be a **volume owner with a secure token**
-(true for a normal primary user). If their password later changes, super simply
-prompts again and saves the new one.
+```
+Status: Validating new --auth-local-account credentials...
+Status: Saved new credentials for the --auth-local-account option.
+Status: macOS update/upgrade workflows automatically authenticated via saved local account.
+```
+
+The account needs a **secure token / volume ownership** on each Mac. Because no
+Jamf API call is involved, this path is immune to the macOS 14 Management ID bug
+below, and it needs no user interaction at all.
+
+> **Only one auth method at a time.** super's priority order is: user-saved
+> password > local account > service account > Jamf API client > Jamf API
+> account. Do **not** also set `AuthAskUserToSavePassword` or pass
+> `--auth-jamf-client`; a higher-priority option makes super *delete* the saved
+> local-account credentials on the next run.
+
+> Note: super stores this password base64-encoded (not encrypted) in the System
+> keychain, so any local admin can recover it. Use a dedicated management
+> account, not a reused or high-value credential.
+
+**Normal end of a policy run:** `Found that Jamf is installing or is the parent
+process, restarting via LaunchDaemon...` followed by `EXIT AND RESTART WORKFLOW`
+is **success**, not an error — super detaches from the jamf parent process so its
+long workflow survives the policy finishing.
 
 ### macOS 14 (and older): "Unable to resolve a valid Jamf Pro Management ID"
 

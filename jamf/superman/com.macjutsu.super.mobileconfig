@@ -67,22 +67,17 @@
 			<integer>8</integer>
 
 			<!-- ============================================================
-			     PRIMARY AUTH METHOD: user-saved password.
-			     The user is prompted ONCE, when an update is actually about to
-			     install, for their own password. super stores it in THAT USER'S
-			     login keychain and reuses it automatically from then on.
-			     Works on every macOS version, needs no local admin account and no
-			     Jamf API, so it sidesteps the macOS 14 Management ID bug.
+			     AUTH METHOD: saved local account, passed via the Jamf policy as
+			     auth-local-account / auth-local-password Script Parameters.
+			     Validated and stored in the System keychain on first run, then used
+			     silently. Works on every macOS version with no Jamf API involved,
+			     so it sidesteps the macOS 14 Management ID bug entirely.
 
-			     !! IMPORTANT !! Remove the auth-jamf-client and auth-jamf-secret
-			     options from the Jamf policy Script Parameters. If either is still
-			     passed, super DELETES the saved user password on every run (super
-			     5.1.1 logs "Deleting saved credentials for the
-			     auth-ask-user-to-save-password option") and the user is re-prompted
-			     forever.
+			     Deliberately NOT setting AuthAskUserToSavePassword here: super allows
+			     only one Apple silicon auth method and the user-password option
+			     OUTRANKS the local account, so setting it would make super delete the
+			     saved local-account credentials and start prompting users instead.
 			     ============================================================ -->
-			<key>AuthAskUserToSavePassword</key>
-			<true/>
 
 			<!-- ============================================================
 			     Apple silicon MDM enforcement. These two identifiers let super
