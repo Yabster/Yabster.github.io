@@ -75,10 +75,18 @@
 			<string>$MANAGEMENTID</string>
 
 			<!-- ============================================================
-			     If the MDM push workflow fails, let the logged-in user authenticate
-			     locally so the enforced install can still proceed at the deadline.
-			     Remove this key if you do NOT want to fall back to user auth.
+			     Two DIFFERENT failovers — keep both:
+			       AuthCredentialFailoverToUser: if the Jamf API client/secret
+			         cannot be VALIDATED, prompt the logged-in user to authenticate
+			         instead of dead-ending. This is the one that prevents the
+			         "authentication options could not be validated and no failover
+			         option was specified" hard stop.
+			       AuthMDMFailoverToUser: if the MDM push workflow fails AFTER the
+			         credentials validated, fall back to user auth so the install
+			         still proceeds.
 			     ============================================================ -->
+			<key>AuthCredentialFailoverToUser</key>
+			<true/>
 			<key>AuthMDMFailoverToUser</key>
 			<string>ALWAYS</string>
 

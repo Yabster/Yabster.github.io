@@ -227,6 +227,17 @@ These are the usual reasons a Mac ignored DDM, and how super gets past each:
 - **A stuck/last DDM plan still pending** → in Jamf **Managed Software Updates**,
   cancel the stale plan for that computer so super's new command isn't ignored as
   a "managed software update deferral" (super deliberately respects those).
+- **"Inactive Error: Apple silicon authentication options could not be validated
+  and no failover option was specified"** → the Jamf API client/secret failed to
+  validate (client not created/enabled, wrong secret, role missing privileges, or
+  Jamf unreachable), and there was no credential failover to fall back on. Fix:
+  (1) confirm the API **Client** exists, is **Enabled**, bound to the role, with
+  the correct secret and all 7 privileges; (2) make sure the profile carries
+  **`AuthCredentialFailoverToUser=true`** (added) — this is the failover for a
+  *validation* failure, distinct from `AuthMDMFailoverToUser` which only covers an
+  MDM push failure *after* creds validate; (3) clear the bad state and re-run:
+  `sudo /usr/local/bin/super --reset-super --verbose-mode` and watch the log for
+  the exact HTTP result (401 = bad client/secret, 403 = missing privilege).
 - **MDM push unreliable** → `AuthMDMFailoverToUser=ALWAYS` (set in the profile)
   lets the logged-in user authenticate locally so the install still completes.
 - **Not enough free space / on-demand download waiting** → super will defer while
