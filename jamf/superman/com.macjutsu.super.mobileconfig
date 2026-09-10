@@ -37,19 +37,24 @@
 			<true/>
 
 			<!-- ============================================================
-			     Update target: pin to macOS 26.6.2 exactly, for BOTH tracks:
-			       - Macs already on 26.x  -> minor update up to 26.6.2 (no newer).
-			       - Macs on 14 or 15      -> MAJOR upgrade, capped at 26.6.2.
-			     super will not install anything newer than 26.6.2.
+			     TARGET: macOS 26.6.2 for BOTH upgrade paths.
+
+			       Mac on 26.x        -> MINOR update, lands on 26.6.2
+			       Mac on 14 or 15    -> MAJOR upgrade, lands on 26.6.2
+
+			     Both target keys are set to the same full version, so every Mac
+			     ends up on exactly 26.6.2 and nothing installs anything newer.
 			     ============================================================ -->
+
+			<!-- MINOR update destination (Macs already on macOS 26.x). -->
 			<key>InstallMacOSMinorVersionTarget</key>
 			<string>26.6.2</string>
 
-			<!-- Allow super to perform macOS MAJOR upgrades (14/15 -> 26). -->
+			<!-- Permit major upgrades at all (without this, 14/15 Macs stay put). -->
 			<key>InstallMacOSMajorUpgrades</key>
 			<true/>
 
-			<!-- Cap the major upgrade at 26.6.2 so nobody jumps to 27. -->
+			<!-- MAJOR upgrade destination (Macs on 14/15 land here, not on 27). -->
 			<key>InstallMacOSMajorVersionTarget</key>
 			<string>26.6.2</string>
 
