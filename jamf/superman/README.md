@@ -69,11 +69,27 @@ doesn't need any of it). These are already reflected in the config profile
 - **Free disk space** — a major upgrade pulls a **full installer (~14 GB)** and
   needs room to apply it. Ensure roughly **25–30 GB free**. Consider a pre-flight
   Smart Group on *Boot Drive Available MB* and remediate low-space Macs first.
-- **`mist-cli` (Intel Macs)** — for the local full-installer upgrade path `super`
-  uses [`mist-cli`](https://github.com/ninxsoft/mist-cli). Deploy it to the Intel
-  machines first (Installomator label `mistcli`, or package the release). Apple
-  silicon going through the **MDM push** path (your Jamf API creds) does **not**
-  need mist-cli.
+- **`mist-cli` — super installs it itself, do NOT pre-deploy it.** super fetches
+  and validates mist-cli during its startup workflow whenever any of
+  `InstallMacOSMajorUpgrades`, `InstallMacOSMajorVersionTarget` or
+  `InstallMacOSMinorVersionTarget` is set:
+
+  ```bash
+  if [[ "${install_macos_major_upgrades}" == "TRUE" ]] || [[ -n "${install_macos_major_version_target}" ]] || [[ -n "${install_macos_minor_version_target}" ]]; then
+      [[ ! -f "${MIST_CLI_BINARY}" ]] && get_mist_cli
+  ```
+
+  This profile sets all three, so **every** Mac in scope pulls mist-cli — not just
+  Intel, and not just the major-upgrade machines. It installs to
+  `/usr/local/bin/mist`.
+
+  **Network requirement:** super downloads it from GitHub releases
+  (`https://github.com/ninxsoft/mist-cli/releases/...`), and it downloads IBM
+  Notifier for its dialogs the same way. If GitHub releases are blocked on your
+  network, `helper_error` is set and the workflow stops during startup. A Mac
+  sitting for a long time at `Running: Startup workflow` with no
+  `LastSuccessfulCheckDate` is the symptom.
+
 - **Apple silicon auth** — your Jamf API client (Step 1) drives the MDM upgrade the
   same way it drives minor updates, so no new credentials. The profile's
   `AuthMDMFailoverToUser=ALWAYS` lets a user authenticate locally if the MDM push
