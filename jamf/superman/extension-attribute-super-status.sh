@@ -32,6 +32,16 @@ readKey() {
 	if [[ -z "${val}" ]]; then printf '%s' "${2:-—}"; else printf '%s' "${val}"; fi
 }
 
+# Normalise super's booleans. set_pref_main writes TRUE/FALSE as real booleans,
+# so `defaults read` returns 1/0 rather than the words.
+yesNo() {
+	case "${1}" in
+		1|TRUE|true)  printf 'Yes' ;;
+		0|FALSE|false) printf 'No' ;;
+		*)            printf '%s' "${1:-—}" ;;
+	esac
+}
+
 # --- Not installed / never run: report clearly and stop. -------------------
 if [[ ! -x "${superBin}" && ! -f "${superPlist}" ]]; then
 	echo "<result>super: NOT INSTALLED | macOS ${osVersion} (${osBuild}) | ${arch}</result>"
@@ -47,6 +57,9 @@ fi
 superVersion="$(readKey SuperVersion unknown)"
 superStatus="$(readKey SuperStatus)"
 workflowTarget="$(readKey WorkflowTarget)"
+case "${workflowTarget}" in
+	0|FALSE|false|"—") workflowTarget="none - already up to date" ;;
+esac
 targetTimestamp="$(readKey WorkflowTargetTimestamp)"
 lastCheck="$(readKey LastSuccessfulCheckDate)"
 nextLaunch="$(/usr/bin/defaults read "${superDomain}" NextAutoLaunch 2>/dev/null)"
@@ -54,7 +67,12 @@ nextLaunch="$(/usr/bin/defaults read "${superDomain}" NextAutoLaunch 2>/dev/null
 deferHard="$(readKey DeadlineCounterHard 0)"
 deferSoft="$(readKey DeadlineCounterSoft 0)"
 deferFocus="$(readKey DeadlineCounterFocus 0)"
-installerDownloaded="$(readKey MacOSInstallerDownloaded No)"
+installerDownloaded="$(yesNo "$(readKey MacOSInstallerDownloaded 0)")"
+
+# MDMClientAvailableCache is TRUE only when Apple is actually OFFERING an OS
+# update to this Mac (super greps mdmclient list for "OS Update Item").
+# It is NOT an MDM health/connectivity flag.
+updateOffered="$(yesNo "$(readKey MDMClientAvailableCache 0)")"
 scheduledInstall="$(readKey WorkflowScheduledInstall)"
 
 # --- Build the SUMMARY block. ---------------------------------------------
@@ -62,6 +80,7 @@ summary="super ${superVersion} | macOS ${osVersion} (${osBuild}) | ${arch}
 Last status:      ${superStatus}
 Update target:    ${workflowTarget}  (set: ${targetTimestamp})
 Deferrals used:   hard=${deferHard} soft=${deferSoft} focus=${deferFocus}
+Update offered:   ${updateOffered}   (Apple offering an OS update to this Mac)
 Installer cached: ${installerDownloaded}
 Scheduled install:${scheduledInstall:+ ${scheduledInstall}}
 Last good check:  ${lastCheck}
