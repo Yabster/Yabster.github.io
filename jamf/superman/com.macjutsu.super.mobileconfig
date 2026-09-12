@@ -37,26 +37,39 @@
 			<true/>
 
 			<!-- ============================================================
-			     TARGET: macOS 26.6.2 for BOTH upgrade paths.
+			     TARGET: macOS 26.
 
-			       Mac on 26.x        -> MINOR update, lands on 26.6.2
-			       Mac on 14 or 15    -> MAJOR upgrade, lands on 26.6.2
+			     !! DO NOT put a full 3-part version here (e.g. 26.6.2) !!
 
-			     Both target keys are set to the same full version, so every Mac
-			     ends up on exactly 26.6.2 and nothing installs anything newer.
+			     Despite the wording in super's docs, these target keys are matched
+			     with EXACT EQUALITY in super 5.1.1, not "this version or older":
+
+			       0 dots ("26")      -> compares MAJOR only        (matches any 26.x)
+			       1 dot  ("26.6")    -> compares MAJOR.MINOR
+			       2 dots ("26.6.2")  -> compares MAJOR.MINOR.PATCH (exact build only)
+
+			     With "26.6.2" set, super rejects whatever Apple is actually offering
+			     unless it is precisely 26.6.2, logs "Unable to target the latest
+			     available over-the-air macOS major upgrade", ends with no target, and
+			     reports "Full super workflow complete!" having done nothing.
+
+			     "26" lets super install whatever macOS 26 release Apple is serving,
+			     while still never jumping the fleet to macOS 27.
 			     ============================================================ -->
-
-			<!-- MINOR update destination (Macs already on macOS 26.x). -->
-			<key>InstallMacOSMinorVersionTarget</key>
-			<string>26.6.2</string>
 
 			<!-- Permit major upgrades at all (without this, 14/15 Macs stay put). -->
 			<key>InstallMacOSMajorUpgrades</key>
 			<true/>
 
-			<!-- MAJOR upgrade destination (Macs on 14/15 land here, not on 27). -->
+			<!-- MAJOR upgrade destination: any macOS 26, never 27. -->
 			<key>InstallMacOSMajorVersionTarget</key>
-			<string>26.6.2</string>
+			<string>26</string>
+
+			<!-- NOTE: InstallMacOSMinorVersionTarget is deliberately NOT set.
+			     Setting it to 26.6.2 made super reject any minor update that was not
+			     exactly 26.6.2 (including the 14.8.5 offered to Macs still on 14.x),
+			     leaving them with no target at all. Unset = install the latest
+			     available minor update, which is what "get everyone current" means. -->
 
 			<!-- ============================================================
 			     Deferrals: allow 8 deferrals, 1 hour apart = an 8-hour window.
