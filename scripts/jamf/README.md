@@ -1,6 +1,6 @@
 # Jamf remediation: Tenable macOS findings (mac.lan, 2026-10-04 export)
 
-One script, `remediate-tenable-macos-findings.sh`, closes the 23 in-scope findings
+One script, `remediation-mac.lan-tenable-macos-findings.sh`, closes the 23 in-scope findings
 from the scan export. They collapse into four actions:
 
 | Action | Findings | Installed | Required | Path |

@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# remediate-tenable-macos-findings.sh
+# remediation-mac.lan-tenable-macos-findings.sh
 #
 # Single Jamf Pro script that remediates the Tenable/Nessus findings reported
 # against mac.lan (10.99.45.230) in the 10/04/2026 export. The 23 in-scope
